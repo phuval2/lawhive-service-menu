@@ -1,35 +1,164 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Lawhive Service Menu</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css">
-</head>
-<body>
-  <header class="site-header">
-    <div class="container header-inner">
+<!DOCTYPE html><!doctype html>
+
+<html lang="en"><html lang="en">
+
+<head><head>
+
+    <meta charset="UTF-8">  <meta charset="utf-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+    <title>Law Hive Service Menu</title>  <title>Lawhive Service Menu</title>
+
+    <style>  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+        :root {  <link rel="stylesheet" href="/styles.css">
+
+            --primary-color: #2d5596;</head>
+
+            --text-color: #333;<body>
+
+            --border-color: #ddd;  <header class="site-header">
+
+        }    <div class="container header-inner">
+
       <div class="brand">
-        <img src="https://raw.githubusercontent.com/lawhive/logo/main/lawhive-mark.png" alt="Lawhive" onerror="this.style.display='none'">
-        <div>
-          <h1 class="brand-text">Lawhive Service Menu</h1>
-          <div class="tag">Attorney-facing menu — powered by Airtable</div>
-        </div>
-      </div>
-    </div>
+
+        body {        <img src="https://raw.githubusercontent.com/lawhive/logo/main/lawhive-mark.png" alt="Lawhive" onerror="this.style.display='none'">
+
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;        <div>
+
+            line-height: 1.6;          <h1 class="brand-text">Lawhive Service Menu</h1>
+
+            color: var(--text-color);          <div class="tag">Attorney-facing menu — powered by Airtable</div>
+
+            margin: 0;        </div>
+
+            padding: 20px;      </div>
+
+        }    </div>
+
   </header>
 
-  <main class="container">
-    <div class="controls">
-      <input id="query" placeholder="Search products, scopes, categories..." />
-      <select id="categoryFilter"><option value="">All categories</option></select>
-    </div>
+        .container {
 
-    <div id="menu"></div>
-    <div class="footer">Tip: Set the Netlify environment variable <code>AIRTABLE_TOKEN</code> to enable live Airtable data.</div>
+            max-width: 1200px;  <main class="container">
+
+            margin: 0 auto;    <div class="controls">
+
+        }      <input id="query" placeholder="Search products, scopes, categories..." />
+
+      <select id="categoryFilter"><option value="">All categories</option></select>
+
+        h1 {    </div>
+
+            color: var(--primary-color);
+
+            margin-bottom: 30px;    <div id="menu"></div>
+
+        }    <div class="footer">Tip: Set the Netlify environment variable <code>AIRTABLE_TOKEN</code> to enable live Airtable data.</div>
+
   </main>
 
-  <script type="module" src="/app.mjs"></script>
+        .search {
+
+            margin-bottom: 20px;  <script type="module" src="/app.mjs"></script>
+
+        }</body>
+
+</html>
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+
+        .category {
+            margin-bottom: 30px;
+        }
+
+        .category-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 4px;
+        }
+
+        .subcategory {
+            margin: 15px 0;
+        }
+
+        .subcategory-header {
+            font-weight: 600;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .product {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+            gap: 15px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .product-header {
+            font-weight: 600;
+            padding: 10px 0;
+        }
+
+        .scopes {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .included {
+            color: #2d5596;
+        }
+
+        .excluded {
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .product {
+                grid-template-columns: 1fr;
+                gap: 8px;
+                padding: 15px 0;
+            }
+
+            .product > div {
+                padding: 2px 0;
+            }
+
+            .product-header {
+                display: none;
+            }
+
+            .price::before {
+                content: "Price: ";
+                font-weight: 600;
+            }
+
+            .splits::before {
+                content: "Split: ";
+                font-weight: 600;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Law Hive Service Menu</h1>
+        <div class="search">
+            <input type="text" id="search" placeholder="Search services...">
+        </div>
+        <div id="menu"></div>
+    </div>
+    <script type="module" src="/app.mjs"></script>
 </body>
 </html>

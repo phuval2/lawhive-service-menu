@@ -1,164 +1,165 @@
-// Frontend logic: fetch products from Netlify Function and render
-// Uses simple DOM rendering, search + category/subcategory grouping
+// Helper functions for formatting
+function formatPrice(val) {
+  if (val === null || val === undefined || val === '') return '—';
+  const num = parseFloat(String(val).replace(/[^0-9.-]+/g, ''));
+  if (Number.isNaN(num)) return val;
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(num);
+}
 
-const tryPaths = ['/.netlify/functions/products', '/api/products'];
+function formatPercent(val) {
+  if (val === null || val === undefined || val === '') return '—';
+  const s = String(val).trim();
+  if (s.endsWith('%')) return s;
+  
+  const num = parseFloat(s.replace(/[^0-9.-]+/g, ''));
+  if (Number.isNaN(num)) return s;
+  
+  const pct = num <= 1 ? num * 100 : num;
+  const rounded = Math.abs(pct - Math.round(pct)) < 0.01 ? Math.round(pct) : Math.round(pct * 10) / 10;
+  return `${rounded}%`;
+}
 
-async function fetchProducts() {
-  for (const p of tryPaths) {
+// Main rendering logic
+async function render() {
+  const menu = document.getElementById('menu');
+  const searchInput = document.getElementById('search');
+  const query = (searchInput?.value || '').toLowerCase();
+
+  let products = [];
+  try {
+    // First try Netlify function
+    const resp = await fetch('/.netlify/functions/products');
+    if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
+    products = await resp.json();
+  } catch (err) {
+    console.warn('Error fetching from Netlify function:', err);
     try {
-      const res = await fetch(p);
-      if (!res.ok) throw new Error(`fetch ${p} failed: ${res.status}`);
-      const json = await res.json();
-      return json;
+      // Fall back to local dev server
+      const resp = await fetch('/api/products');
+      if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
+      products = await resp.json();
     } catch (err) {
-      // try next
-      console.warn('fetch failed for', p, err);
-      continue;
+      console.error('Error fetching products:', err);
+      menu.innerHTML = '<p>Error loading menu. Please check the console.</p>';
+      return;
     }
   }
 
-  // final fallback sample so UI still works without a token
-  return [
-    {
-      id: 'sample1',
-      parentCategory: 'Corporate',
-      subCategory: 'Formation',
-      productName: 'LLC Formation',
-      includedScope: 'Prepare articles; file with state',
-      excludedScope: 'Registered agent fees',
-      lineItemPrice: 500,
-      percentFirmSplit: 60,
-      percentLawhiveSplit: 40
-    }
-  ];
-}
-
-function formatPrice(v) {
-  if (v === null || v === undefined || v === '') return '—';
-  if (typeof v === 'string') {
-    const n = Number(v.replace(/[^0-9.-]+/g, ''));
-    if (!isFinite(n)) return v;
-    v = n;
+  // Filter by search query
+  if (query) {
+    products = products.filter(p => {
+      const searchable = [
+        p.parentCategory,
+        p.subCategory,
+        p.productName,
+        p.includedScope,
+        p.excludedScope
+      ].map(s => (s || '').toLowerCase()).join(' ');
+      return searchable.includes(query);
+    });
   }
-  if (typeof v === 'number') return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
-  return String(v);
-}
 
-function formatPercent(v) {
-  if (v === null || v === undefined || v === '') return '—';
-  if (typeof v === 'string') {
-    const s = v.trim();
-    if (s.endsWith('%')) return s;
-    const n = Number(s.replace(/[^0-9.-]+/g, ''));
-    if (!isFinite(n)) return s;
-    v = n;
-  }
-  // if decimal between 0 and 1, treat as fraction
-  if (typeof v === 'number') {
-    const pct = v <= 1 ? v * 100 : v;
-    const rounded = Math.abs(pct - Math.round(pct)) < 0.01 ? Math.round(pct) : Math.round(pct * 10) / 10;
-    return `${rounded}%`;
-  }
-  return String(v);
-}
-
-function createEl(tag, cls, text) {
-  const el = document.createElement(tag);
-  if (cls) el.className = cls;
-  if (text !== undefined) el.textContent = text;
-  return el;
-}
-
-function render(products) {
-  const container = document.getElementById('menu');
-  container.innerHTML = '';
-
-  // Group by parentCategory -> subCategory
-  const map = {};
+  // Group by parent category and subcategory
+  const grouped = {};
   for (const p of products) {
-    const pc = p.parentCategory || 'Uncategorized';
-    const sc = p.subCategory || 'Uncategorized';
-    map[pc] = map[pc] || {};
-    map[pc][sc] = map[pc][sc] || [];
-    map[pc][sc].push(p);
+    const parent = p.parentCategory || 'Uncategorized';
+    const sub = p.subCategory || 'General';
+    if (!grouped[parent]) grouped[parent] = {};
+    if (!grouped[parent][sub]) grouped[parent][sub] = [];
+    grouped[parent][sub].push(p);
   }
 
-  for (const pc of Object.keys(map).sort()) {
-    const catEl = createEl('div', 'category');
-    catEl.appendChild(createEl('h2', '', pc));
+  // Render the menu
+  menu.innerHTML = '';
 
-    for (const sc of Object.keys(map[pc]).sort()) {
-      const sub = createEl('div', 'subcategory');
-      sub.appendChild(createEl('h3', '', sc));
+  // Add headers once at the top
+  const headerRow = document.createElement('div');
+  headerRow.className = 'product product-header';
+  headerRow.innerHTML = `
+    <div>Product</div>
+    <div>Price</div>
+    <div>Firm</div>
+    <div>Law Hive</div>
+    <div>Scope</div>
+  `;
+  menu.appendChild(headerRow);
 
-      const table = createEl('div', 'products');
+  // Render each category
+  for (const [parent, subs] of Object.entries(grouped)) {
+    const category = document.createElement('div');
+    category.className = 'category';
+    
+    const categoryHeader = document.createElement('div');
+    categoryHeader.className = 'category-header';
+    categoryHeader.textContent = parent;
+    category.appendChild(categoryHeader);
 
-      map[pc][sc].sort((a, b) => a.productName.localeCompare(b.productName));
+    for (const [sub, products] of Object.entries(subs)) {
+      const subcategory = document.createElement('div');
+      subcategory.className = 'subcategory';
+      
+      const subHeader = document.createElement('div');
+      subHeader.className = 'subcategory-header';
+      subHeader.textContent = sub;
+      subcategory.appendChild(subHeader);
 
-      for (const p of map[pc][sc]) {
-        const row = createEl('div', 'product');
+      for (const p of products) {
+        const product = document.createElement('div');
+        product.className = 'product';
+        
+        const name = document.createElement('div');
+        name.textContent = p.productName;
+        product.appendChild(name);
 
-        const main = createEl('div', 'main');
-        main.appendChild(createEl('h4', '', p.productName || ''));
+        const price = document.createElement('div');
+        price.className = 'price';
+        price.textContent = formatPrice(p.lineItemPrice);
+        product.appendChild(price);
 
-        if (p.includedScope) main.appendChild(createEl('div', 'scope-included', `Included: ${p.includedScope}`));
-        if (p.excludedScope) main.appendChild(createEl('div', 'scope-excluded', `Excluded: ${p.excludedScope}`));
+        const firm = document.createElement('div');
+        firm.className = 'splits';
+        firm.textContent = formatPercent(p.percentFirmSplit);
+        product.appendChild(firm);
 
-        const meta = createEl('div', 'meta');
-        const price = createEl('div', 'price', formatPrice(p.lineItemPrice));
-        const splits = createEl('div', '', `Firm: ${formatPercent(p.percentFirmSplit)} • Lawhive: ${formatPercent(p.percentLawhiveSplit)}`);
-        splits.style.color = 'var(--muted)';
-        splits.style.marginTop = '6px';
+        const lawhive = document.createElement('div');
+        lawhive.className = 'splits';
+        lawhive.textContent = formatPercent(p.percentLawhiveSplit);
+        product.appendChild(lawhive);
 
-        meta.appendChild(price);
-        meta.appendChild(splits);
+        const scopes = document.createElement('div');
+        scopes.className = 'scopes';
+        if (p.includedScope) {
+          scopes.innerHTML += `<div class="included">✓ ${p.includedScope}</div>`;
+        }
+        if (p.excludedScope) {
+          scopes.innerHTML += `<div class="excluded">✗ ${p.excludedScope}</div>`;
+        }
+        product.appendChild(scopes);
 
-        row.appendChild(main);
-        row.appendChild(meta);
-        table.appendChild(row);
+        subcategory.appendChild(product);
       }
 
-      sub.appendChild(table);
-      catEl.appendChild(sub);
+      category.appendChild(subcategory);
     }
 
-    container.appendChild(catEl);
+    menu.appendChild(category);
   }
 }
 
-function populateCategoryFilter(products) {
-  const categorySelect = document.getElementById('categoryFilter');
-  categorySelect.innerHTML = '<option value="">All categories</option>';
-  const cats = Array.from(new Set(products.map(p => p.parentCategory || 'Uncategorized'))).sort();
-  for (const c of cats) {
-    const opt = createEl('option', '', c);
-    opt.value = c;
-    categorySelect.appendChild(opt);
-  }
-}
+// Initial render
+render();
 
-function applyFilters(products) {
-  const q = document.getElementById('query').value.trim().toLowerCase();
-  const cat = document.getElementById('categoryFilter').value;
-  const filtered = products.filter(p => {
-    if (cat && (p.parentCategory || '') !== cat) return false;
-    if (!q) return true;
-    const hay = [p.productName, p.includedScope, p.excludedScope, p.subCategory, p.parentCategory].join(' ').toLowerCase();
-    return hay.includes(q);
+// Set up search
+const searchInput = document.getElementById('search');
+if (searchInput) {
+  let debounceTimeout;
+  searchInput.addEventListener('input', () => {
+    clearTimeout(debounceTimeout);
+    debounceTimeout = setTimeout(render, 250);
   });
-  render(filtered);
 }
-
-async function boot() {
-  const products = await fetchProducts();
-  window.__products = products;
-  populateCategoryFilter(products);
-  render(products);
-
-  document.getElementById('query').addEventListener('input', () => applyFilters(products));
-  document.getElementById('categoryFilter').addEventListener('change', () => applyFilters(products));
-}
-
-boot();
-
-export default {};
