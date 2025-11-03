@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Lawhive Service Menu</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <img src="https://raw.githubusercontent.com/lawhive/logo/main/lawhive-mark.png" alt="Lawhive" onerror="this.style.display='none'">
+        <div>
+          <h1 class="brand-text">Lawhive Service Menu</h1>
+          <div class="tag">Attorney-facing menu — powered by Airtable</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="controls">
+      <input id="query" placeholder="Search products, scopes, categories..." />
+      <select id="categoryFilter"><option value="">All categories</option></select>
+    </div>
+
+    <div id="menu"></div>
+    <div class="footer">Tip: Set the Netlify environment variable <code>AIRTABLE_TOKEN</code> to enable live Airtable data.</div>
+  </main>
+
+  <script type="module" src="/app.mjs"></script>
+</body>
+</html>
