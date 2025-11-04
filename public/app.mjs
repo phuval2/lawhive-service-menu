@@ -56,7 +56,13 @@ function renderMenu(groups, container){
   for (const parent of sortedParents){
     const subs = groups[parent];
     const cat = document.createElement('div');cat.className='category';
-    const header = document.createElement('div');header.className='category-header';header.textContent = parent;cat.appendChild(header);
+    const header = document.createElement('div');header.className='category-header';
+    header.innerHTML = `<span class="category-title">${parent}</span><span class="expand-icon">▼</span>`;
+    header.style.cursor = 'pointer';
+    cat.appendChild(header);
+    
+    const content = document.createElement('div');
+    content.className = 'category-content collapsed';
     
     const sortedSubs = Object.keys(subs).sort();
     for (const sub of sortedSubs){
@@ -109,8 +115,16 @@ function renderMenu(groups, container){
         prodwrap.appendChild(row);
       }
       subwrap.appendChild(prodwrap);
-      cat.appendChild(subwrap);
+      content.appendChild(subwrap);
     }
+    cat.appendChild(content);
+    
+    header.addEventListener('click', () => {
+      content.classList.toggle('collapsed');
+      const icon = header.querySelector('.expand-icon');
+      icon.textContent = content.classList.contains('collapsed') ? '▼' : '▲';
+    });
+    
     container.appendChild(cat);
   }
 }
