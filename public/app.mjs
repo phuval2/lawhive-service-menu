@@ -38,25 +38,64 @@ function createOption(select, value){
   const opt = document.createElement('option');opt.value = value;opt.textContent = value;select.appendChild(opt);
 }
 
+function formatScopeList(scopeText){
+  if (!scopeText) return '';
+  const items = scopeText.split('\n').filter(line => line.trim()).map(line => {
+    let clean = line.trim();
+    if (clean.startsWith('-')) clean = clean.substring(1).trim();
+    if (clean.startsWith('•')) clean = clean.substring(1).trim();
+    return clean;
+  });
+  if (items.length === 0) return '';
+  return '<ul>' + items.map(item => `<li>${item}</li>`).join('') + '</ul>';
+}
+
 function renderMenu(groups, container){
   container.innerHTML = '';
-  for (const [parent, subs] of Object.entries(groups)){
+  const sortedParents = Object.keys(groups).sort();
+  for (const parent of sortedParents){
+    const subs = groups[parent];
     const cat = document.createElement('div');cat.className='category';
     const header = document.createElement('div');header.className='category-header';header.textContent = parent;cat.appendChild(header);
-    for (const [sub, items] of Object.entries(subs)){
+    
+    const sortedSubs = Object.keys(subs).sort();
+    for (const sub of sortedSubs){
+      const items = subs[sub];
       const subwrap = document.createElement('div');subwrap.className='subcategory';
       const subh = document.createElement('div');subh.className='subcategory-header';subh.textContent=sub;subwrap.appendChild(subh);
+      
+      const tableHeader = document.createElement('div');
+      tableHeader.className='table-header';
+      tableHeader.innerHTML = `
+        <div>Product Name</div>
+        <div>Price</div>
+        <div>Firm Split</div>
+        <div>Lawhive Split</div>
+        <div>Included Scope</div>
+        <div>Excluded Scope</div>
+      `;
+      subwrap.appendChild(tableHeader);
+      
       const prodwrap = document.createElement('div');prodwrap.className='products';
-      for (const p of items){
+      const sortedItems = items.sort((a, b) => (a.productName || '').localeCompare(b.productName || ''));
+      
+      for (const p of sortedItems){
         const row = document.createElement('div');row.className='product';
         const name = document.createElement('div');name.className='name';name.textContent = p.productName;row.appendChild(name);
         const price = document.createElement('div');price.className='price';price.textContent = formatPrice(p.lineItemPrice);row.appendChild(price);
         const firm = document.createElement('div');firm.className='firm';firm.textContent = formatPercent(p.percentFirmSplit);row.appendChild(firm);
         const lawhive = document.createElement('div');lawhive.className='lawhive';lawhive.textContent = formatPercent(p.percentLawhiveSplit);row.appendChild(lawhive);
-        const scopes = document.createElement('div');scopes.className='scopes';
-        if (p.includedScope) scopes.innerHTML += `<div class="included">✓ ${p.includedScope.replace(/\n/g,'<br>')}</div>`;
-        if (p.excludedScope) scopes.innerHTML += `<div class="excluded">✗ ${p.excludedScope.replace(/\n/g,'<br>')}</div>`;
-        row.appendChild(scopes);
+        
+        const includedScope = document.createElement('div');
+        includedScope.className='scope-list included-scope';
+        includedScope.innerHTML = formatScopeList(p.includedScope);
+        row.appendChild(includedScope);
+        
+        const excludedScope = document.createElement('div');
+        excludedScope.className='scope-list excluded-scope';
+        excludedScope.innerHTML = formatScopeList(p.excludedScope);
+        row.appendChild(excludedScope);
+        
         prodwrap.appendChild(row);
       }
       subwrap.appendChild(prodwrap);
