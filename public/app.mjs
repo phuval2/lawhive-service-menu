@@ -83,8 +83,18 @@ function renderMenu(groups, container){
         const row = document.createElement('div');row.className='product';
         const name = document.createElement('div');name.className='name';name.textContent = p.productName;row.appendChild(name);
         const price = document.createElement('div');price.className='price';price.textContent = formatPrice(p.lineItemPrice);row.appendChild(price);
-        const firm = document.createElement('div');firm.className='firm';firm.textContent = formatPercent(p.percentFirmSplit);row.appendChild(firm);
-        const lawhive = document.createElement('div');lawhive.className='lawhive';lawhive.textContent = formatPercent(p.percentLawhiveSplit);row.appendChild(lawhive);
+        
+        const firmSplit = document.createElement('div');firmSplit.className='firm';
+        const firmPercent = p.percentFirmSplit || 0;
+        const firmAmount = (p.lineItemPrice || 0) * (firmPercent <= 1 ? firmPercent : firmPercent / 100);
+        firmSplit.innerHTML = `<span class="percent">${formatPercent(firmPercent)}</span><span class="amount">${formatPrice(firmAmount)}</span>`;
+        row.appendChild(firmSplit);
+        
+        const lawhiveSplit = document.createElement('div');lawhiveSplit.className='lawhive';
+        const lawhivePercent = p.percentLawhiveSplit || 0;
+        const lawhiveAmount = (p.lineItemPrice || 0) * (lawhivePercent <= 1 ? lawhivePercent : lawhivePercent / 100);
+        lawhiveSplit.innerHTML = `<span class="percent">${formatPercent(lawhivePercent)}</span><span class="amount">${formatPrice(lawhiveAmount)}</span>`;
+        row.appendChild(lawhiveSplit);
         
         const includedScope = document.createElement('div');
         includedScope.className='scope-list included-scope';
