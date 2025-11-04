@@ -169,6 +169,11 @@ async function init(){
   subSelect.addEventListener('change', applyFilters);
   search.addEventListener('input', ()=>{ clearTimeout(window._deb); window._deb = setTimeout(applyFilters, 180); });
 
+  // Populate subcategory dropdown initially with all subcategories
+  const allSubs = new Set();
+  for (const c of Object.keys(grouped)) for (const s of Object.keys(grouped[c])) allSubs.add(s);
+  Array.from(allSubs).sort().forEach(s => createOption(subSelect,s));
+
   applyFilters();
 }
 
