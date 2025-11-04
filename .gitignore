@@ -3,3 +3,6 @@ node_modules
 .DS_Store
 dist
 .env.local
+
+# Local Netlify folder
+.netlify

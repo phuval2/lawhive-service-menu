@@ -1,0 +1,56 @@
+modules = ["nodejs-18", "web"]
+[agent]
+expertMode = true
+
+[nix]
+channel = "stable-25_05"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "dev-server"
+
+[[workflows.workflow]]
+name = "dev-server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm start"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[ports]]
+localPort = 3999
+externalPort = 3001
+exposeLocalhost = true
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 34379
+externalPort = 3002
+
+[[ports]]
+localPort = 45207
+externalPort = 3000
+
+[[ports]]
+localPort = 46253
+externalPort = 3003
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["npx", "netlify", "dev", "--port"]
+build = ["echo", "No build step required"]

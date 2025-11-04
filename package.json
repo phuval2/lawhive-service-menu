@@ -3,9 +3,17 @@
   "version": "1.0.0",
   "description": "Lawhive service menu frontend with Netlify Functions backing Airtable",
   "main": "netlify/functions/products.js",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "start": "npx netlify dev",
+    "start": "netlify dev --port 5000",
     "build": "echo 'No build step; static files in public/'"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "netlify-cli": "^21.6.0"
   }
 }
