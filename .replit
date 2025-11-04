@@ -46,10 +46,6 @@ externalPort = 3002
 localPort = 45297
 externalPort = 3000
 
-[[ports]]
-localPort = 46253
-externalPort = 3003
-
 [deployment]
 deploymentTarget = "autoscale"
 run = ["npx", "netlify", "dev", "--port"]
