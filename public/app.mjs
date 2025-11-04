@@ -1,165 +1,129 @@
-// Helper functions for formatting
-function formatPrice(val) {
-  if (val === null || val === undefined || val === '') return '—';
-  const num = parseFloat(String(val).replace(/[^0-9.-]+/g, ''));
-  if (Number.isNaN(num)) return val;
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(num);
-}
+// Frontend: fetch products from Netlify function and render grouped UI
 
-function formatPercent(val) {
-  if (val === null || val === undefined || val === '') return '—';
-  const s = String(val).trim();
+function formatPrice(v){
+  if (v === null || v === undefined || v === '') return '—';
+  const n = parseFloat(String(v).replace(/[^0-9.-]+/g,''));
+  if (Number.isNaN(n)) return String(v);
+  return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:0}).format(n);
+}
+function formatPercent(v){
+  if (v === null || v === undefined || v === '') return '—';
+  const s = String(v).trim();
   if (s.endsWith('%')) return s;
-  
-  const num = parseFloat(s.replace(/[^0-9.-]+/g, ''));
-  if (Number.isNaN(num)) return s;
-  
-  const pct = num <= 1 ? num * 100 : num;
-  const rounded = Math.abs(pct - Math.round(pct)) < 0.01 ? Math.round(pct) : Math.round(pct * 10) / 10;
-  return `${rounded}%`;
+  const n = parseFloat(s.replace(/[^0-9.-]+/g,''));
+  if (Number.isNaN(n)) return s;
+  const pct = n <= 1 ? n*100 : n;
+  return (Math.abs(pct - Math.round(pct)) < 0.01 ? Math.round(pct) : Math.round(pct*10)/10) + '%';
 }
 
-// Main rendering logic
-async function render() {
-  const menu = document.getElementById('menu');
-  const searchInput = document.getElementById('search');
-  const query = (searchInput?.value || '').toLowerCase();
+async function fetchProducts(){
+  const resp = await fetch('/.netlify/functions/products');
+  if (!resp.ok) throw new Error('Failed to fetch products: '+resp.status);
+  return await resp.json();
+}
 
-  let products = [];
-  try {
-    // First try Netlify function
-    const resp = await fetch('/.netlify/functions/products');
-    if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
-    products = await resp.json();
-  } catch (err) {
-    console.warn('Error fetching from Netlify function:', err);
-    try {
-      // Fall back to local dev server
-      const resp = await fetch('/api/products');
-      if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
-      products = await resp.json();
-    } catch (err) {
-      console.error('Error fetching products:', err);
-      menu.innerHTML = '<p>Error loading menu. Please check the console.</p>';
-      return;
-    }
-  }
-
-  // Filter by search query
-  if (query) {
-    products = products.filter(p => {
-      const searchable = [
-        p.parentCategory,
-        p.subCategory,
-        p.productName,
-        p.includedScope,
-        p.excludedScope
-      ].map(s => (s || '').toLowerCase()).join(' ');
-      return searchable.includes(query);
-    });
-  }
-
-  // Group by parent category and subcategory
-  const grouped = {};
-  for (const p of products) {
+function groupProducts(products){
+  const groups = {};
+  for (const p of products){
     const parent = p.parentCategory || 'Uncategorized';
     const sub = p.subCategory || 'General';
-    if (!grouped[parent]) grouped[parent] = {};
-    if (!grouped[parent][sub]) grouped[parent][sub] = [];
-    grouped[parent][sub].push(p);
+    groups[parent] = groups[parent] || {};
+    groups[parent][sub] = groups[parent][sub] || [];
+    groups[parent][sub].push(p);
   }
+  return groups;
+}
 
-  // Render the menu
-  menu.innerHTML = '';
+function createOption(select, value){
+  const opt = document.createElement('option');opt.value = value;opt.textContent = value;select.appendChild(opt);
+}
 
-  // Add headers once at the top
-  const headerRow = document.createElement('div');
-  headerRow.className = 'product product-header';
-  headerRow.innerHTML = `
-    <div>Product</div>
-    <div>Price</div>
-    <div>Firm</div>
-    <div>Law Hive</div>
-    <div>Scope</div>
-  `;
-  menu.appendChild(headerRow);
-
-  // Render each category
-  for (const [parent, subs] of Object.entries(grouped)) {
-    const category = document.createElement('div');
-    category.className = 'category';
-    
-    const categoryHeader = document.createElement('div');
-    categoryHeader.className = 'category-header';
-    categoryHeader.textContent = parent;
-    category.appendChild(categoryHeader);
-
-    for (const [sub, products] of Object.entries(subs)) {
-      const subcategory = document.createElement('div');
-      subcategory.className = 'subcategory';
-      
-      const subHeader = document.createElement('div');
-      subHeader.className = 'subcategory-header';
-      subHeader.textContent = sub;
-      subcategory.appendChild(subHeader);
-
-      for (const p of products) {
-        const product = document.createElement('div');
-        product.className = 'product';
-        
-        const name = document.createElement('div');
-        name.textContent = p.productName;
-        product.appendChild(name);
-
-        const price = document.createElement('div');
-        price.className = 'price';
-        price.textContent = formatPrice(p.lineItemPrice);
-        product.appendChild(price);
-
-        const firm = document.createElement('div');
-        firm.className = 'splits';
-        firm.textContent = formatPercent(p.percentFirmSplit);
-        product.appendChild(firm);
-
-        const lawhive = document.createElement('div');
-        lawhive.className = 'splits';
-        lawhive.textContent = formatPercent(p.percentLawhiveSplit);
-        product.appendChild(lawhive);
-
-        const scopes = document.createElement('div');
-        scopes.className = 'scopes';
-        if (p.includedScope) {
-          scopes.innerHTML += `<div class="included">✓ ${p.includedScope}</div>`;
-        }
-        if (p.excludedScope) {
-          scopes.innerHTML += `<div class="excluded">✗ ${p.excludedScope}</div>`;
-        }
-        product.appendChild(scopes);
-
-        subcategory.appendChild(product);
+function renderMenu(groups, container){
+  container.innerHTML = '';
+  for (const [parent, subs] of Object.entries(groups)){
+    const cat = document.createElement('div');cat.className='category';
+    const header = document.createElement('div');header.className='category-header';header.textContent = parent;cat.appendChild(header);
+    for (const [sub, items] of Object.entries(subs)){
+      const subwrap = document.createElement('div');subwrap.className='subcategory';
+      const subh = document.createElement('div');subh.className='subcategory-header';subh.textContent=sub;subwrap.appendChild(subh);
+      const prodwrap = document.createElement('div');prodwrap.className='products';
+      for (const p of items){
+        const row = document.createElement('div');row.className='product';
+        const name = document.createElement('div');name.className='name';name.textContent = p.productName;row.appendChild(name);
+        const price = document.createElement('div');price.className='price';price.textContent = formatPrice(p.lineItemPrice);row.appendChild(price);
+        const firm = document.createElement('div');firm.className='firm';firm.textContent = formatPercent(p.percentFirmSplit);row.appendChild(firm);
+        const lawhive = document.createElement('div');lawhive.className='lawhive';lawhive.textContent = formatPercent(p.percentLawhiveSplit);row.appendChild(lawhive);
+        const scopes = document.createElement('div');scopes.className='scopes';
+        if (p.includedScope) scopes.innerHTML += `<div class="included">✓ ${p.includedScope.replace(/\n/g,'<br>')}</div>`;
+        if (p.excludedScope) scopes.innerHTML += `<div class="excluded">✗ ${p.excludedScope.replace(/\n/g,'<br>')}</div>`;
+        row.appendChild(scopes);
+        prodwrap.appendChild(row);
       }
-
-      category.appendChild(subcategory);
+      subwrap.appendChild(prodwrap);
+      cat.appendChild(subwrap);
     }
-
-    menu.appendChild(category);
+    container.appendChild(cat);
   }
 }
 
-// Initial render
-render();
+// Wire up search and filters
+let allProducts = [];
+let grouped = {};
 
-// Set up search
-const searchInput = document.getElementById('search');
-if (searchInput) {
-  let debounceTimeout;
-  searchInput.addEventListener('input', () => {
-    clearTimeout(debounceTimeout);
-    debounceTimeout = setTimeout(render, 250);
+async function init(){
+  const menu = document.getElementById('menu');
+  const search = document.getElementById('search');
+  const catSelect = document.getElementById('categoryFilter');
+  const subSelect = document.getElementById('subCategoryFilter');
+
+  try{
+    allProducts = await fetchProducts();
+  }catch(err){
+    menu.innerHTML = `<p>Error loading products: ${err.message}</p>`;return;
+  }
+
+  grouped = groupProducts(allProducts);
+
+  // populate category select
+  const categories = Object.keys(grouped).sort();
+  for (const c of categories){ createOption(catSelect,c); }
+
+  // when category changes, update subcategory select
+  catSelect.addEventListener('change', () => {
+    const val = catSelect.value;
+    subSelect.innerHTML = '<option value="">All subcategories</option>';
+    if (!val) {
+      // show all
+      const allSubs = new Set();
+      for (const c of Object.keys(grouped)) for (const s of Object.keys(grouped[c])) allSubs.add(s);
+      Array.from(allSubs).sort().forEach(s => createOption(subSelect,s));
+    } else {
+      Object.keys(grouped[val]||{}).sort().forEach(s => createOption(subSelect,s));
+    }
+    applyFilters();
   });
+
+  subSelect.addEventListener('change', applyFilters);
+  search.addEventListener('input', ()=>{ clearTimeout(window._deb); window._deb = setTimeout(applyFilters, 180); });
+
+  applyFilters();
 }
+
+function applyFilters(){
+  const searchVal = (document.getElementById('search').value||'').toLowerCase().trim();
+  const catVal = document.getElementById('categoryFilter').value;
+  const subVal = document.getElementById('subCategoryFilter').value;
+
+  let filtered = allProducts.filter(p => {
+    if (catVal && (p.parentCategory||'') !== catVal) return false;
+    if (subVal && (p.subCategory||'') !== subVal) return false;
+    if (!searchVal) return true;
+    const hay = [p.parentCategory,p.subCategory,p.productName,p.includedScope,p.excludedScope].map(x => (x||'').toLowerCase()).join(' ');
+    return hay.includes(searchVal);
+  });
+
+  const g = groupProducts(filtered);
+  renderMenu(g, document.getElementById('menu'));
+}
+
+init();

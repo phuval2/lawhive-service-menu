@@ -1,22 +1,11 @@
 {
   "name": "lawhive-service-menu",
   "version": "1.0.0",
-  "description": "Lawhive branded service menu that pulls data from Airtable Master Products table",
-  "type": "module",
-  "main": "server/index.js",
+  "description": "Lawhive service menu frontend with Netlify Functions backing Airtable",
+  "main": "netlify/functions/products.js",
+  "engines": { "node": ">=18" },
   "scripts": {
-    "start": "node server/index.js",
-    "dev": "nodemon --watch server --watch public --ext js,html,css --exec node server/index.js"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "MIT",
-  "dependencies": {
-    "express": "^4.18.2",
-    "dotenv": "^16.0.3"
-  },
-  "devDependencies": {
-    "nodemon": "^2.0.22"
+    "start": "npx netlify dev",
+    "build": "echo 'No build step; static files in public/'"
   }
 }
-

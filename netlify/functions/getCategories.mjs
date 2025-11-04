@@ -1,13 +1,10 @@
-"use strict";
-
-// Netlify Function: Proxy to Airtable Master Products table
-// Reads AIRTABLE_TOKEN from Netlify environment variables
+// Netlify Function: getCategories
+// Reads AIRTABLE_TOKEN from Netlify env vars, proxies Airtable Master Products table
 
 const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN;
 const AIRTABLE_BASE = process.env.AIRTABLE_BASE || 'appHuFySGdecIs6Cq';
 const TABLE_NAME = process.env.AIRTABLE_TABLE || 'Master Products';
 
-// Small sample fallback so the UI can render without a token
 const SAMPLE = [
   {
     id: 'recSample1',
@@ -22,12 +19,18 @@ const SAMPLE = [
   }
 ];
 
-exports.handler = async function (event, context) {
-  const headersOut = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
+export async function handler(event, context) {
+  const headersOut = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*'
+  };
 
   if (!AIRTABLE_TOKEN) {
-    // Return sample data when token is missing so frontend can be developed locally
-    return { statusCode: 200, headers: headersOut, body: JSON.stringify(SAMPLE) };
+    return {
+      statusCode: 200,
+      headers: headersOut,
+      body: JSON.stringify(SAMPLE)
+    };
   }
 
   try {
@@ -38,12 +41,10 @@ exports.handler = async function (event, context) {
     do {
       const url = offset ? `${base}?offset=${offset}` : base;
       const resp = await fetch(url, { headers: { Authorization: `Bearer ${AIRTABLE_TOKEN}` } });
-
       if (!resp.ok) {
         const text = await resp.text();
         return { statusCode: resp.status, headers: headersOut, body: text };
       }
-
       const data = await resp.json();
       if (data.records && data.records.length) records.push(...data.records);
       offset = data.offset;
@@ -65,9 +66,17 @@ exports.handler = async function (event, context) {
       };
     }).filter(p => p.productName);
 
-    return { statusCode: 200, headers: headersOut, body: JSON.stringify(mapped) };
+    return {
+      statusCode: 200,
+      headers: headersOut,
+      body: JSON.stringify(mapped)
+    };
   } catch (err) {
     console.error('Error fetching Airtable:', err);
-    return { statusCode: 500, headers: headersOut, body: JSON.stringify({ error: String(err) }) };
+    return {
+      statusCode: 500,
+      headers: headersOut,
+      body: JSON.stringify({ error: String(err) })
+    };
   }
-};
+}
